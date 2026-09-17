@@ -1,0 +1,3 @@
+include NOTICE LICENSE README.md pyproject.toml pixi.lock chimerax_style.py
+recursive-include docs *.md *.png
+recursive-include tests *.py

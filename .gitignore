@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Reproducible molecular inputs and local render/build output
+*.pse
+*.pdb
+*.cif
+*.mrc
+*.ccp4
+*.map
+*.npz
+*.png
+!docs/gallery/*.png
+.DS_Store
