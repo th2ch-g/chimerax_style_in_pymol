@@ -65,7 +65,7 @@ pixel-identical output or identical scientific analysis.
 | Atom/bond styles | `stick`, `ball`, `sphere` | Rounded sticks, VDW-scaled balls, full VDW spheres. Stick radius 0.2 Å and ball scale 0.3. PyMOL supplies bond perception and VDW radii. |
 | Ring fill | `ring-fill`, `ring-fill-thin` | Bonded 3–6 member rings, including fused rings. Convex extrusions; use `stick` to remove fills. |
 | Cartoon cross sections | `cartoon`, `cartoon-oval`, `cartoon-rectangle`, `cartoon-barbell` | Default oval helices/coils and rectangular strands/nucleic backbones. Width 2 Å, thickness 0.4 Å, arrow scale 2. Barbell profile and spline smoothing are independent approximations. |
-| Helix modes | `helix-tube`, `helix-cylinder`, `helix-wrap` | Curved smoothed axis, straight principal axis, or spiral ribbon oriented around the fitted axis. Tube fitting differs from ChimeraX's circle/ideal-helix fits. |
+| Helix modes | `helix-tube`, `helix-cylinder`, `helix-wrap` | Fitted circular arc, straight cylinder, or ribbon projected onto that fitted surface. Short helices use ideal-helix alignment; tube helices with at least 13 residues use arc fitting. Radius is fitted (maximum 2.5 Å); `params.helix_radius` overrides it. Spline joins, end caps, and triangulation remain approximations. |
 | Uniform / attribute cartoons | `tube`, `worm` | Uniform tube or a radius interpolated from `b`, `q`, or `partial_charge`. Chain changes and large coordinate gaps split the path. |
 | Molecular surfaces | `surface`, `surface-mesh`, `surface-dot` | Native PyMOL solvent-excluded surface, probe 1.4 Å; solid, mesh, and dot views of that surface. PyMOL's surface triangulation differs. |
 | Gaussian envelope | `gaussian-surface` | Sum of atom-centered Gaussians; `resolution` is FWHM in Å. Absolute contour level, no scientific density normalization. |
@@ -188,9 +188,24 @@ documentation for [style](https://www.cgl.ucsf.edu/chimerax/docs/user/commands/s
 [SNFG](https://www.cgl.ucsf.edu/chimerax/docs/user/commands/snfg.html),
 [lighting](https://www.cgl.ucsf.edu/chimerax/docs/user/commands/lighting.html), and
 [presets](https://www.cgl.ucsf.edu/chimerax/docs/user/commands/preset.html).
-Element and nucleotide palettes follow the published RGB conventions; model
-colors are a small deterministic pastel palette. No ChimeraX renderer comparison
-has been performed, so visual equivalence is not claimed.
+Model, chain, element and nucleotide colors are checked against the official
+[atomic color definitions](https://github.com/RBVI/ChimeraX/blob/8b1067a516a6d439537bcd355c3d1bdbea0f1292/src/bundles/atomic/src/colors.py).
+Models begin tan, sky blue, plum and light green; chains use their case-insensitive
+IDs rather than selection order. The element table includes all 109 published
+entries and the gray fallback. Rainbow runs per residue within each chain;
+B-factor uses blue-white-red and averages residues for cartoons. The optional
+`secondary-structure` mode remains a plugin-specific red/gold/blue palette.
+
+Helix fitting was compared numerically with the original `sse.py` on 1CRN/1GGG:
+36 straight/curved fits have maximum center/radius errors of 0.000036/0.0000012 Å.
+Analytic gradients avoid repeated finite-difference objective evaluations.
+No ChimeraX application image comparison has been performed; native lighting,
+spline joins, surfaces and other approximations above remain distinct.
+
+The NumPy 2.5.3 audit renders all 84 named styles in GPU and ray. For 20,000
+atoms, chain-color preparation takes 2.2 ms versus 73.6 ms before this update;
+B-factor preparation takes 7.9 ms versus 48.9 ms. Chain lookup and B-factor
+normalization no longer repeat linear scans per atom.
 
 The sibling CueMol/Mol* projects informed package structure, managed-view
 ownership, explicit scientific input handling, and paired GPU/ray galleries.
@@ -198,3 +213,7 @@ Generic mesh primitives were adapted under MIT; attribution is in [NOTICE](../NO
 Tests exercise every style in real PyMOL, exact displacement-tensor geometry,
 affine grids, source preservation, overlapping views, failed replacements,
 state playback data, session round trips, parser registration, and PNG export.
+
+Publication backgrounds use Python float components at the PyMOL setting boundary,
+fixing rejected NumPy 2.x tuple representations. Fitted helix tubes are capped
+separately from loop interpolation to prevent flared ends.

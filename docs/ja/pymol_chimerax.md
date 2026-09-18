@@ -46,7 +46,7 @@ chimerax_style list
 VR、医療画像viewer、全ファイル形式の読込までは含みません。
 
 stick半径0.2 Å、ball倍率0.3、cartoon幅2 Å・厚さ0.4 Å、核酸slab厚さ0.5 Åなどを
-参照しています。一方、cartoon補間、helix軸の近似、表面三角形分割、VDW半径、照明・
+参照しています。一方、cartoon補間・末端接続、表面三角形分割、VDW半径、照明・
 陰影はChimeraXと一致しません。実際のChimeraX画像との比較検証はしていません。
 
 `volume-image` は透過平面を重ねる近似で、ChimeraXのvolume rendererとは異なります。
@@ -141,3 +141,11 @@ importだけではPyMOLを起動せず、設定も変えません。`__init_plug
 科学的な入力契約、全表示形式、復元、session再読込、PNG出力を実際のPyMOLで検証します。
 参照元・ライセンスは[英語版](../pymol_chimerax.md#reference-and-verification)と
 [NOTICE](../../NOTICE)に記載しています。
+
+モデル色・鎖色・元素色・核酸色は本家 `8b1067a` の定義に合わせています。モデル色はtan、sky blue、plum、light greenの順で、鎖色は選択順によらず鎖IDで決まります。元素色109項目と未定義元素の灰色も一致させています。rainbowは鎖ごとの残基単位、B-factorは青・白・赤でcartoonは残基平均です。任意のsecondary-structure配色は本プラグイン独自の赤・金・青です。
+
+helix-tube/cylinderは本家と同じ円弧・円筒の目的関数でフィットし、短いhelixは理想構造へ整列、13残基以上のtubeは円弧を使います。半径は自動フィット（上限2.5 Å）で、`params.helix_radius` で上書きできます。1CRN/1GGGの36条件で本家数値計算との軸位置・半径の最大差は0.000036/0.0000012 Åでした。解析勾配で評価回数を抑えています。末端・ループの接続と三角形分割には差が残ります。実ChimeraX画像との比較は未実施です。
+
+NumPy 2.5.3で全84スタイルのGPU/rayを検証しました。2万原子の鎖色計算は73.6 msから2.2 ms、B-factor色計算は48.9 msから7.9 msへ短縮しました。
+
+publicationの白背景設定はNumPyスカラーをPython floatへ変換してPyMOLに渡し、NumPy 2.xで設定が反映されない問題を修正しました。ヘリックスの管はループ補間から分離して末端の膨らみを防ぎます。

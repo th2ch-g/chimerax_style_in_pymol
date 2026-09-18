@@ -122,7 +122,7 @@ DEFAULTS = {
     "thickness": 0.4,
     "coil_radius": 0.2,
     "arrow_scale": 2.0,
-    "helix_radius": 2.0,
+    "helix_radius": None,
     "smooth": 1.0,
     "worm_min": 0.25,
     "worm_max": 2.0,
@@ -217,6 +217,14 @@ def parameters(value):
         if int(result[key]) != result[key]:
             raise ValueError(f"{key} must be an integer")
         result[key] = int(result[key])
+    if result["helix_radius"] is not None:
+        radius = result["helix_radius"]
+        if (
+            not isinstance(radius, (int, float))
+            or not math.isfinite(radius)
+            or radius <= 0
+        ):
+            raise ValueError("helix_radius must be positive or null for fitting")
     if result["probability"] is not None:
         if not 0 < float(result["probability"]) < 1:
             raise ValueError("probability must lie strictly between 0 and 1")

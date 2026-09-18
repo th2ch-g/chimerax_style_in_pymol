@@ -72,7 +72,7 @@ def apply(cmd, storage, profile, background="keep", outline=False, depth=False):
     if depth:
         settings.update(depth_cue=1, ray_trace_fog=1)
     if background != "keep":
-        settings["bg_rgb"] = tuple(rgb(background, cmd))
+        settings["bg_rgb"] = tuple(map(float, rgb(background, cmd)))
     old = storage.setdefault("settings", {})
     for key, value in settings.items():
         if key not in old:

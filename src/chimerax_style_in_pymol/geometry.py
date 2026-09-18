@@ -3,9 +3,9 @@
 from collections import defaultdict
 
 import numpy as np
-from scipy.interpolate import CubicSpline
-from scipy.ndimage import gaussian_filter1d
+from scipy.interpolate import CubicHermiteSpline, CubicSpline
 
+from .helix import fit_helix
 from .mesh import Mesh, merge, unit
 from .primitives import convex, cylinder, sphere_template, sweep
 
@@ -97,26 +97,46 @@ def cartoon(model, col, style, p, detail):
             else p["xsection"]
         )
         # Fit each helix independently and connect coil segments to its endpoints.
+        fitted_helices = np.zeros(len(points), dtype=bool)
         helix = np.flatnonzero(ss == "H")
         for group in np.split(helix, np.flatnonzero(np.diff(helix) > 1) + 1):
             if len(group) < 3 or mode == "default":
                 continue
             h = points[group]
-            center = h.mean(axis=0)
-            axis = np.linalg.svd(h - center, full_matrices=False)[2][0]
-            if np.dot(axis, h[-1] - h[0]) < 0:
-                axis *= -1
-            midline = center + np.outer((h - center) @ axis, axis)
+            midline, axes, radius = fit_helix(h, curved=mode != "cylinder")
+            radius = radius if p["helix_radius"] is None else p["helix_radius"]
             if mode == "wrap":
-                hints[group] = np.cross(np.tile(axis, (len(group), 1)), h - midline)
+                points[group] = midline + unit(h - midline) * radius
+                hints[group] = axes
             else:
-                if mode == "tube" and len(group) >= 8:
-                    midline = gaussian_filter1d(h, 1.7, axis=0, mode="nearest")
-                    midline[0], midline[-1] = (
-                        center + axis * np.dot(h[0] - center, axis),
-                        center + axis * np.dot(h[-1] - center, axis),
-                    )
                 points[group] = midline
+                fitted_helices[group] = True
+                # Keep the fitted tube independent of the loop spline. Otherwise
+                # loop curvature bends and flares the cylinder's terminal rings.
+                spacing = np.linalg.norm(np.diff(midline, axis=0), axis=1).mean()
+                knots = np.arange(len(group))
+                samples = np.r_[
+                    -0.3, np.arange(0, len(group) - 0.5, 0.5), len(group) - 0.7
+                ]
+                tube_path = CubicHermiteSpline(knots, midline, axes * spacing)(samples)
+                tube_hints = np.tile(unit(h[0] - midline[0]), (len(samples), 1))
+                nearest_helix = np.clip(
+                    np.floor(samples + 0.5).astype(int), 0, len(group) - 1
+                )
+                tube_ids = ids[group[nearest_helix]]
+                pieces.append(
+                    sweep(
+                        tube_path,
+                        radius,
+                        radius,
+                        tube_hints,
+                        col[tube_ids],
+                        tube_ids,
+                        "ellipse",
+                        detail,
+                    )
+                )
+
         sample = np.linspace(
             0, len(points) - 1, (len(points) - 1) * max(8, detail // 2) + 1
         )
@@ -134,7 +154,9 @@ def cartoon(model, col, style, p, detail):
         thick = np.full(len(sample), p["thickness"] / 2)
         thick[~np.isin(kinds, ["H", "S", "N"])] = p["coil_radius"]
         if mode in ("tube", "cylinder"):
-            width[kinds == "H"] = thick[kinds == "H"] = p["helix_radius"]
+            # A thin connecting path remains inside the separately capped tubes.
+            mask = fitted_helices[nearest]
+            width[mask] = thick[mask] = p["coil_radius"]
         if style == "tube":
             width[:] = thick[:] = p["coil_radius"] * 2.5
         if style == "worm":

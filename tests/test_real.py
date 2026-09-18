@@ -171,3 +171,15 @@ def test_failed_export_preserves_existing_file(cmd, tmp_path, monkeypatch, paylo
         chimerax_style("png", filename=path, width=100, height=100, _self=cmd)
     assert path.read_bytes() == b"previous image"
     assert list(tmp_path.iterdir()) == [path]
+
+
+def test_publication_background_uses_python_scalars_and_restores(cmd):
+    from chimerax_style_in_pymol import chimerax_style
+
+    cmd.pseudoatom("background_probe", pos=[0, 0, 0])
+    cmd.bg_color("black")
+    before = cmd.get_setting_tuple("bg_rgb")
+    chimerax_style("publication", selection="background_probe", _self=cmd)
+    np.testing.assert_allclose(cmd.get_color_tuple(cmd.get("bg_rgb")), [1, 1, 1])
+    chimerax_style("reset", _self=cmd)
+    assert cmd.get_setting_tuple("bg_rgb") == before

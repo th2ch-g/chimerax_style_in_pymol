@@ -180,3 +180,53 @@ def test_batched_cgo_preserves_opacity_groups_and_triangle_attributes():
         assert values[offset + 40] == cg.END
         offset += 41
     assert offset == len(values)
+
+
+@pytest.mark.parametrize(
+    "count, expected, radius",
+    [
+        (
+            8,
+            [
+                [0.037649559, 0.006301104, 0.013066489],
+                [0.098503349, 0.100377402, 10.504011141],
+            ],
+            2.301653294,
+        ),
+        (
+            24,
+            [
+                [40.060531995, 0.068237788, -0.767271691],
+                [26.459311737, 30.455519305, -0.344506314],
+            ],
+            2.341939419,
+        ),
+    ],
+)
+def test_fitted_helix_matches_native_numerical_reference(count, expected, radius):
+    from chimerax_style_in_pymol.helix import fit_helix
+
+    t = np.arange(count)
+    angle = t * np.deg2rad(100)
+    if count == 8:
+        points = np.c_[2.3 * np.cos(angle), 2.3 * np.sin(angle), 1.5 * t]
+    else:
+        phi = t * 1.5 / 40
+        points = np.c_[
+            (40 + 2.3 * np.cos(angle)) * np.cos(phi),
+            (40 + 2.3 * np.cos(angle)) * np.sin(phi),
+            2.3 * np.sin(angle),
+        ]
+    centers, tangents, fitted_radius = fit_helix(points)
+    # Expected values were evaluated by ChimeraX sse.py at 8b1067a.
+    np.testing.assert_allclose(centers[[0, -1]], expected, atol=1e-4)
+    assert abs(fitted_radius - radius) < 1e-5
+    np.testing.assert_allclose(np.linalg.norm(tangents, axis=1), 1, atol=1e-6)
+    moved = fit_helix(points + [10, -3, 2])
+    np.testing.assert_allclose(moved[0], centers + [10, -3, 2], atol=1e-4)
+
+
+@pytest.mark.parametrize("radius", [-1, 0, float("nan"), "auto"])
+def test_invalid_helix_radius(radius):
+    with pytest.raises(ValueError, match="helix_radius"):
+        parameters({"helix_radius": radius})

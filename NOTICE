@@ -1,6 +1,11 @@
 This package is an independent implementation inspired by UCSF ChimeraX.
 It is not affiliated with or endorsed by UCSF, RBVI, or Schrodinger.
-ChimeraX source code is not incorporated into this package.
+ChimeraX source code is not incorporated into this package. Numeric RGB data
+and ideal-helix calibration coordinates refer to ChimeraX revision
+8b1067a516a6d439537bcd355c3d1bdbea0f1292:
+https://github.com/RBVI/ChimeraX/tree/8b1067a516a6d439537bcd355c3d1bdbea0f1292
+The helix optimizer independently evaluates the published cylinder/arc objectives
+with analytic gradients. Element colors use the published Jmol RGB table.
 
 The geometric primitives in mesh.py and primitives.py are adapted from
 molstar_style_in_pymol and cuemol_style_in_pymol, under the MIT License:
