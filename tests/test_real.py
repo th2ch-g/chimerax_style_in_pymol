@@ -160,3 +160,14 @@ def test_projection_and_transformed_sources(cmd):
     assert cmd.get_setting_int("orthoscopic") == 1
     chimerax_style("reset", _self=cmd)
     assert cmd.get_setting_int("orthoscopic") == 0
+
+
+@pytest.mark.parametrize("payload", [None, -1, b"incomplete PNG"])
+def test_failed_export_preserves_existing_file(cmd, tmp_path, monkeypatch, payload):
+    path = tmp_path / "existing.png"
+    path.write_bytes(b"previous image")
+    monkeypatch.setattr(cmd, "png", lambda *args, **kwargs: payload)
+    with pytest.raises(RuntimeError, match="did not write a PNG"):
+        chimerax_style("png", filename=path, width=100, height=100, _self=cmd)
+    assert path.read_bytes() == b"previous image"
+    assert list(tmp_path.iterdir()) == [path]

@@ -3,6 +3,7 @@
 import re
 from copy import deepcopy
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from uuid import uuid4
 
 from . import lighting, render, shapes, volume
@@ -305,10 +306,18 @@ def export(cmd, filename, width, height, ray):
         raise ValueError("Image dimensions must be positive integers")
     path = Path(filename).expanduser()
     path.parent.mkdir(parents=True, exist_ok=True)
-    cmd.png(str(path), width=width, height=height, ray=int(ray), quiet=1)
-    cmd.sync()
-    if not path.is_file():
-        raise RuntimeError(
-            "PyMOL did not write the PNG; GPU export requires an active OpenGL window"
-        )
+    with NamedTemporaryFile(dir=path.parent, suffix=".png", delete=False) as stream:
+        scratch = Path(stream.name)
+    try:
+        cmd.png(str(scratch), width=width, height=height, ray=int(ray), quiet=1)
+        cmd.sync()
+        with scratch.open("rb") as stream:
+            valid = stream.read(8) == b"\x89PNG\r\n\x1a\n"
+        if not valid:
+            raise RuntimeError(
+                "PyMOL did not write a PNG; GPU export requires an active OpenGL window"
+            )
+        scratch.replace(path)
+    finally:
+        scratch.unlink(missing_ok=True)
     return str(path)

@@ -167,7 +167,8 @@ at the next style command; use `reset` for immediate cleanup.
 Lighting affects all visible objects because PyMOL lighting is global. The
 last applied view determines it. Resetting the final managed view restores
 settings owned by this command, preserving subsequent user changes. GPU `png`
-needs an active OpenGL window. Ray export also works headlessly.
+needs an active OpenGL window. Ray export also works headlessly. Export validates the rendered PNG before
+atomically replacing the destination; a failed render preserves an existing file.
 
 Custom solid, mesh, and dot CGO payloads are assembled in NumPy batches. This
 reduces preparation overhead for large cartoons, nucleotide shapes, and maps;
