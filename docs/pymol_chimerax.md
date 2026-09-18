@@ -169,6 +169,11 @@ last applied view determines it. Resetting the final managed view restores
 settings owned by this command, preserving subsequent user changes. GPU `png`
 needs an active OpenGL window. Ray export also works headlessly.
 
+Custom solid, mesh, and dot CGO payloads are assembled in NumPy batches. This
+reduces preparation overhead for large cartoons, nucleotide shapes, and maps;
+triangle order, normals, colors, and opacity groups are preserved. All states
+are still prepared before replacing a managed view.
+
 ## Reference and verification
 
 The behavior and numeric defaults were checked against the official ChimeraX

@@ -141,3 +141,42 @@ def test_zero_dash_count_creates_a_solid_pseudobond():
     p = parameters({"dashes": 0})
     mesh = dashed([0, 0, 0], [2, 0, 0], 0.1, [1, 0, 0], count=p["dashes"])
     assert len(mesh.faces) > 0
+
+
+def test_batched_cgo_preserves_opacity_groups_and_triangle_attributes():
+    from pymol import cgo as cg
+
+    from chimerax_style_in_pymol.geometry import cgo
+    from chimerax_style_in_pymol.mesh import Mesh
+
+    vertices = np.arange(27, dtype=np.float32).reshape(9, 3) / 10
+    normals = np.tile([0, 0, 1], (9, 1))
+    colors = np.tile([0.2, 0.4, 0.8], (9, 1))
+    mesh = Mesh(
+        vertices,
+        normals,
+        colors,
+        np.arange(9).reshape(3, 3),
+        np.zeros(9),
+        alphas=np.repeat([0.75, 0, 0.25], 3),
+    )
+    values = cgo(mesh)
+    offset = 2
+    for face, opacity in ((2, 0.25), (0, 0.75)):
+        assert values[offset : offset + 4] == [
+            cg.ALPHA,
+            opacity,
+            cg.BEGIN,
+            cg.TRIANGLES,
+        ]
+        rows = np.array(values[offset + 4 : offset + 40]).reshape(3, 12)
+        np.testing.assert_array_equal(rows[:, 0], cg.COLOR)
+        np.testing.assert_array_equal(rows[:, 4], cg.NORMAL)
+        np.testing.assert_array_equal(rows[:, 8], cg.VERTEX)
+        ids = mesh.faces[face]
+        np.testing.assert_array_equal(rows[:, 1:4], mesh.colors[ids])
+        np.testing.assert_array_equal(rows[:, 5:8], mesh.normals[ids])
+        np.testing.assert_array_equal(rows[:, 9:12], mesh.vertices[ids])
+        assert values[offset + 40] == cg.END
+        offset += 41
+    assert offset == len(values)

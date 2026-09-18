@@ -133,6 +133,10 @@ importだけではPyMOLを起動せず、設定も変えません。`__init_plug
 復元し、その後の手動変更は保持します。`png`はOpenGL画面が必要で、`ray`はheadlessでも
 使用できます。ギャラリーは実際のPyMOL GPU/ray出力で、AI生成画像ではありません。
 
+独自形状のsolid・mesh・dot用CGOデータはNumPyでまとめて作成し、大きなcartoon・
+核酸形状・mapの準備負荷を減らします。三角形の順序、法線、色、透明度のグループは
+維持し、すべてのstateを準備してから管理表示を置き換えます。
+
 科学的な入力契約、全表示形式、復元、session再読込、PNG出力を実際のPyMOLで検証します。
 参照元・ライセンスは[英語版](../pymol_chimerax.md#reference-and-verification)と
 [NOTICE](../../NOTICE)に記載しています。

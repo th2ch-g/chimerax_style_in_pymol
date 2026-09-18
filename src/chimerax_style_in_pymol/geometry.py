@@ -416,22 +416,24 @@ def cgo(mesh, mode="solid", radius=0.04, stride=1):
             ),
             axis=0,
         )
-        for i, j in edges[::stride]:
-            result.extend(
-                [
-                    cg.CYLINDER,
-                    *mesh.vertices[i],
-                    *mesh.vertices[j],
-                    radius,
-                    *mesh.colors[i],
-                    *mesh.colors[j],
-                ]
-            )
+        pairs = edges[::stride]
+        values = np.empty((len(pairs), 14), np.float32)
+        values[:, 0] = cg.CYLINDER
+        values[:, 1:4] = mesh.vertices[pairs[:, 0]]
+        values[:, 4:7] = mesh.vertices[pairs[:, 1]]
+        values[:, 7] = radius
+        values[:, 8:11] = mesh.colors[pairs[:, 0]]
+        values[:, 11:14] = mesh.colors[pairs[:, 1]]
+        result.extend(values.ravel().tolist())
     elif mode == "dot":
-        for i in range(0, len(mesh.vertices), stride):
-            result.extend(
-                [cg.COLOR, *mesh.colors[i], cg.SPHERE, *mesh.vertices[i], radius]
-            )
+        ids = np.arange(0, len(mesh.vertices), stride)
+        values = np.empty((len(ids), 9), np.float32)
+        values[:, 0] = cg.COLOR
+        values[:, 1:4] = mesh.colors[ids]
+        values[:, 4] = cg.SPHERE
+        values[:, 5:8] = mesh.vertices[ids]
+        values[:, 8] = radius
+        result.extend(values.ravel().tolist())
     else:
         # PyMOL applies alpha to a BEGIN/END block, not individual vertices.
         alpha = np.round(mesh.alphas[mesh.faces].mean(axis=1) * mesh.opacity, 3)
@@ -439,16 +441,14 @@ def cgo(mesh, mode="solid", radius=0.04, stride=1):
             if opacity <= 0:
                 continue
             result.extend([cg.ALPHA, float(opacity), cg.BEGIN, cg.TRIANGLES])
-            for i in mesh.faces[alpha == opacity].ravel():
-                result.extend(
-                    [
-                        cg.COLOR,
-                        *mesh.colors[i],
-                        cg.NORMAL,
-                        *mesh.normals[i],
-                        cg.VERTEX,
-                        *mesh.vertices[i],
-                    ]
-                )
+            ids = mesh.faces[alpha == opacity].ravel()
+            values = np.empty((len(ids), 12), np.float32)
+            values[:, 0] = cg.COLOR
+            values[:, 1:4] = mesh.colors[ids]
+            values[:, 4] = cg.NORMAL
+            values[:, 5:8] = mesh.normals[ids]
+            values[:, 8] = cg.VERTEX
+            values[:, 9:12] = mesh.vertices[ids]
+            result.extend(values.ravel().tolist())
             result.append(cg.END)
-    return [float(v) for v in result]
+    return result
