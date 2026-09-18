@@ -183,3 +183,26 @@ def test_publication_background_uses_python_scalars_and_restores(cmd):
     np.testing.assert_allclose(cmd.get_color_tuple(cmd.get("bg_rgb")), [1, 1, 1])
     chimerax_style("reset", _self=cmd)
     assert cmd.get_setting_tuple("bg_rgb") == before
+
+
+@pytest.mark.parametrize(
+    "quality, spacing", [("high", 0.5), ("medium", 0.75), ("low", 1.0)]
+)
+def test_surface_sampling_is_scoped_and_restored(cmd, quality, spacing):
+    load(cmd, "surface-mesh")
+    before = snapshot(cmd)
+    original = cmd.get_setting_float("surface_best")
+    chimerax_style("surface-mesh", quality=quality, quiet=1, _self=cmd)
+    obj = next(iter(storage(cmd)["views"]["chimerax"]["copies"]))
+    native_quality = cmd.get_setting_int("surface_quality", obj)
+    actual = cmd.get_setting_float(
+        "surface_normal" if native_quality == 0 else "surface_best", obj
+    )
+    if native_quality == 2:
+        actual /= 2
+    assert actual == pytest.approx(spacing)
+    assert cmd.get_setting_float("surface_best") == original
+    chimerax_style("reset", _self=cmd)
+    after = snapshot(cmd)
+    assert before[0] == after[0]
+    np.testing.assert_array_equal(before[1], after[1])

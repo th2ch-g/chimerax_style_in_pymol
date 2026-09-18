@@ -91,7 +91,12 @@ def molecular(
     elif style in GROUPS["Cartoons"]:
         custom = "cartoon"
     elif style.startswith("surface") or style == "ghostly-white":
-        cmd.set("surface_quality", 2 if quality == "high" else 1, obj)
+        # PyMOL quality 2 halves surface_best; match the reference 0.5 A
+        # sampling scale instead of silently requesting a 0.125 A mesh.
+        spacing = p["grid_spacing"] * {"high": 1, "medium": 1.5, "low": 2}[quality]
+        cmd.set("surface_quality", {"high": 2, "medium": 1, "low": 0}[quality], obj)
+        cmd.set("surface_best", spacing * (2 if quality == "high" else 1), obj)
+        cmd.set("surface_normal", spacing, obj)
         cmd.set("solvent_radius", p["probe_radius"], obj)
         cmd.set("surface_solvent", 0, obj)
         cmd.set(

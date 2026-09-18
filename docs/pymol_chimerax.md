@@ -175,6 +175,22 @@ reduces preparation overhead for large cartoons, nucleotide shapes, and maps;
 triangle order, normals, colors, and opacity groups are preserved. All states
 are still prepared before replacing a managed view.
 
+Molecular surfaces now use `params.grid_spacing` (default 0.5 Å), matching the
+sampling scale in ChimeraX's [surface command source](https://github.com/RBVI/ChimeraX/blob/develop/src/bundles/surface/src/surfacecmds.py).
+High/medium/low quality uses 1/1.5/2 times this spacing. PyMOL point spacing and
+ChimeraX grid spacing describe different triangulation algorithms; this is not
+an exact surface match. Probe radius, source colors, and material lighting are
+retained. The previous high setting silently used 0.125 Å; request
+`params={"grid_spacing":0.125}` when that extra density is needed. All settings
+are applied to managed copies only. This makes mesh lines visible at the
+reference scale instead of covering the surface with excessive triangulation.
+
+In the 1GGG 3200 x 1800 completed-drag benchmark, surface-mesh improved from
+13.2 to 122.6 FPS; surface-atomic from 112.4 to 615.2; ghostly-white from 103.4
+to 450.3. First ray export of surface-mesh at 640 x 480 with four threads,
+including native surface preparation, improved from 13.64 to 9.56 s. Native
+surface generation still has an initial cost; subsequent draws reuse it.
+
 ## Reference and verification
 
 The behavior and numeric defaults were checked against the official ChimeraX

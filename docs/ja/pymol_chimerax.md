@@ -138,6 +138,10 @@ importだけではPyMOLを起動せず、設定も変えません。`__init_plug
 核酸形状・mapの準備負荷を減らします。三角形の順序、法線、色、透明度のグループは
 維持し、すべてのstateを準備してから管理表示を置き換えます。
 
+分子表面にも `params.grid_spacing`（既定0.5 Å）を適用し、[本家のsurface定義](https://github.com/RBVI/ChimeraX/blob/develop/src/bundles/surface/src/surfacecmds.py)の標本化スケールへ合わせました。high/medium/lowはこの間隔の1/1.5/2倍です。PyMOLの点間隔とChimeraXの格子間隔は異なる三角分割アルゴリズムの値であり、表面の完全一致ではありません。probe半径・分子色・照明は維持します。以前のhighは0.125 Å相当の過密な分割だったため、同じ密度が必要なら `params={"grid_spacing":0.125}` を指定してください。設定は管理用コピーだけに適用します。
+
+1GGG・3200×1800の完了したマウス回転はsurface-mesh 13.2→122.6 FPS、surface-atomic 112.4→615.2 FPS、ghostly-white 103.4→450.3 FPSでした。surface-meshの最初のrayは640×480・4 threadsで、標準表面の生成を含め13.64→9.56秒でした。表面の初回生成には負荷が残り、以降の描画は生成済みデータを使います。
+
 科学的な入力契約、全表示形式、復元、session再読込、PNG出力を実際のPyMOLで検証します。
 参照元・ライセンスは[英語版](../pymol_chimerax.md#reference-and-verification)と
 [NOTICE](../../NOTICE)に記載しています。
