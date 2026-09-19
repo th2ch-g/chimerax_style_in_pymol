@@ -1,5 +1,7 @@
 """Exercise representations and lifecycle using a real isolated PyMOL instance."""
 
+from unittest.mock import patch
+
 import numpy as np
 import pymol2
 import pytest
@@ -100,6 +102,28 @@ def test_registration_and_parser(cmd):
     __init_plugin__(_self=cmd)
     cmd.do("chimerax_style ball, selection=sample, name=parser, lighting=keep")
     assert "parser" in storage(cmd)["views"]
+
+
+@pytest.mark.parametrize("color", ["auto", "element", "model", "keep", "red"])
+def test_atomic_palettes_do_not_copy_coordinates_or_topology(cmd, color):
+    load(cmd, "cartoon")
+    before = snapshot(cmd)
+    with patch.object(cmd, "get_model", wraps=cmd.get_model) as read_model:
+        chimerax_style("ball", color=color, quiet=1, _self=cmd)
+    assert read_model.call_count == 0
+    chimerax_style("reset", _self=cmd)
+    assert snapshot(cmd)[0] == before[0]
+    np.testing.assert_array_equal(snapshot(cmd)[1], before[1])
+
+
+def test_cartoon_keep_colors_reads_native_color_indices(cmd):
+    load(cmd, "cartoon")
+    cmd.color("red", "sample and resi 1-4")
+    before = snapshot(cmd)
+    chimerax_style("default", color="keep", quiet=1, _self=cmd)
+    chimerax_style("reset", _self=cmd)
+    assert snapshot(cmd)[0] == before[0]
+    np.testing.assert_array_equal(snapshot(cmd)[1], before[1])
 
 
 def test_existing_group_and_unrelated_object(cmd):

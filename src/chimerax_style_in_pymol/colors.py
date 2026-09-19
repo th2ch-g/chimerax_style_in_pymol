@@ -95,7 +95,10 @@ def colors(model, mode, cmd, model_index=0, atomic=False):
     base = model_color(model_index, background)
     result = np.tile(base, (len(atoms), 1))
     if mode == "keep":
-        return np.array([cmd.get_color_tuple(a.color) for a in atoms])
+        palette = {
+            index: cmd.get_color_tuple(index) for index in {a.color for a in atoms}
+        }
+        return np.array([palette[a.color] for a in atoms])
     if mode == "chain":
         return np.array([chain_color(a.chain) for a in atoms])
     if mode == "secondary-structure":

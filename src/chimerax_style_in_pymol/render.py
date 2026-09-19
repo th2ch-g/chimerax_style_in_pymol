@@ -1,5 +1,7 @@
 """Build native PyMOL objects and CGO geometry without modifying source models."""
 
+from types import SimpleNamespace
+
 import numpy as np
 
 from . import geometry, shapes, volume
@@ -8,12 +10,29 @@ from .registry import GROUPS
 
 
 def recolor(cmd, obj, mode, model_index, atomic=False):
+    if mode == "keep":
+        return
+    if mode not in ("chain", "secondary-structure", "nucleotide", "rainbow", "bfactor"):
+        # Uniform and element palettes need no coordinates or bond graph.
+        elements = set()
+        cmd.iterate(obj, "elements.add(elem.upper())", space={"elements": elements})
+        symbols = sorted(elements)
+        model = SimpleNamespace(atom=[SimpleNamespace(symbol=s) for s in symbols])
+        palette = colors(model, mode, cmd, model_index, atomic)
+        table = {}
+        for symbol, color in zip(symbols, palette):
+            name = "cxs_rgb_" + "".join(f"{round(v * 255):02x}" for v in color)
+            cmd.set_color(name, list(color), quiet=1)
+            table[symbol] = cmd.get_color_index(name)
+        cmd.alter(obj, "color = table[elem.upper()]", space={"table": table}, quiet=1)
+        cmd.recolor(obj)
+        return
     model = cmd.get_model(obj)
     col = colors(model, mode, cmd, model_index, atomic)
     table = {}
     unique = {}
-    for atom, color in zip(model.atom, col):
-        key = tuple(np.round(color, 5))
+    for atom, color, rounded in zip(model.atom, col, np.round(col, 5)):
+        key = tuple(rounded)
         if key not in unique:
             name = "cxs_rgb_" + "".join(f"{round(v * 255):02x}" for v in color)
             cmd.set_color(name, list(color), quiet=1)
@@ -232,7 +251,17 @@ def molecular(
         name = obj + "_geometry"
         extras.append(name)
         for state in range(1, cmd.count_states(obj) + 1):
-            model = cmd.get_model(obj, state=state)
+            # Preset meshes use only polymers; lipids and solvent are already
+            # displayed by the native atomic representation.
+            selected = f"({obj}) and polymer" if custom == "preset" else obj
+            model = cmd.get_model(selected, state=state)
+            if color == "keep":
+                indices = {}
+                cmd.iterate(
+                    selected, "indices[index] = color", space={"indices": indices}
+                )
+                for atom in model.atom:
+                    atom.color = indices[atom.index]
             col = colors(model, color, cmd, model_index, atomic=atom_style)
             if custom == "rings":
                 mesh = geometry.rings(

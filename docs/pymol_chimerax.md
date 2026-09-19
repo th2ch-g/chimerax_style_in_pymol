@@ -8,6 +8,24 @@ package. It uses native molecular objects for atoms and solvent-excluded
 surfaces, and independently constructed CGO meshes for other geometry.
 Both the interactive viewport and PyMOL ray renderer can display the geometry.
 
+## Large structures
+
+Uniform and element coloring resolve their palettes once and apply atom colors
+in bulk, without copying coordinates or bonds into Python. Default composition
+presets build custom meshes from polymers only; native atom/bond rendering still
+includes selected lipids, solvent, and ions. `color=keep` preserves the source
+color indices and resolves each unique color once for custom geometry. No new
+quality setting or atom-filtering rule is introduced.
+
+Measure command preparation separately from loading and rendering:
+
+```sh
+uv run --no-project --python .pixi/envs/default/bin/python python tests/benchmark_large.py system.gro --output .cache/large-structure.json
+```
+
+The report records atom/state counts, wall time, and peak process memory. Keep
+local structures and generated reports outside version control.
+
 ## Interface
 
 ```text
